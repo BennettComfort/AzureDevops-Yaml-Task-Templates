@@ -22,46 +22,86 @@ trigger:
 stages:
 - stage: Build
   Jobs:
-  - job: Build
+  - job: 1
     pool:
       vmImage: 'windows-latest'
       demands:
       - msbuild
       - visualstudio 
       - vstest 
+  steps:
+  - task: NuGetToolInstaller@1
+  
+  - task: NuGetCommand@2
+    inputs:
+      command: 'restore'
+      restoreSolution: '$(solution)'
+      feedsToUse: 'select'
+      vstsFeed: '4c7d6b48-e03d-438a-9736-ebe3d9c458ac/f82f74e4-cf8e-47c5-8ea6-c7897821bf8c'
+  
+  # - task: VSBuild@1
+  #  inputs:
+  #    solution: '$(solution)'
+  #    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactStagingDirectory)"'
+  #    platform: 
+      
+      
+  - task: MSBuild@1
+    inputs:
+      solution: '$(solution)'
+      platform: '$(buildPlatform)'
+      configuration: '$(buildConfiguration)'
+      msbuildArguments: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactstagingdirectory)\\"'
+  
+  - task: VSTest@2
+    inputs:
+      platform: '$(buildPlatform)'
+      configuration: '$(buildConfiguration)'
+  
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: 'drop'
+      publishLocation: 'Container'
 
+- stage: Deploy
+  jobs: 
+  - deployment: A1
+    displayName: 'ASP.NET Framework Web App Deployment'
+    pool:
+      vmimage: 'Windows-Latest'
+    environment: env1
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+            
+          - task: IISWebAppManagementOnMachineGroup@0
+            displayName: 'IIS Web App Manage'
+            inputs:
+              EnableIIS: true
+              IISDeploymentType: '$(Parameters.IISDeploymentType)'
+              ActionIISWebsite: '$(Parameters.ActionIISWebsite)'
+              WebsiteName: '$(Parameters.WebsiteName)'
+              AddBinding: '$(Parameters.AddBinding)'
+              Bindings: '$(Parameters.Bindings)'
+              CreateOrUpdateAppPoolForWebsite: true
+              AppPoolNameForWebsite: SampleSite
+              ParentWebsiteNameForVD: '$(Parameters.WebsiteName)'
+              VirtualPathForVD: '$(Parameters.VirtualPathForApplication)'
+              ParentWebsiteNameForApplication: '$(Parameters.WebsiteName)'
+              VirtualPathForApplication: '$(Parameters.VirtualPathForApplication)'
+              AppPoolName: '$(Parameters.AppPoolName)'
 
-steps:
-- task: NuGetToolInstaller@1
+          - task: IISWebAppDeploymentOnMachineGroup@0
+            displayName: 'IIS Web App Deploy'
+            inputs:
+              WebSiteName: '$(Parameters.WebsiteName)'
+              VirtualApplication: SampleApp
+              TakeAppOfflineFlag: True
+              XmlVariableSubstitution: True
 
-- task: NuGetCommand@2
-  inputs:
-    command: 'restore'
-    restoreSolution: '$(solution)'
-    feedsToUse: 'select'
-    vstsFeed: '4c7d6b48-e03d-438a-9736-ebe3d9c458ac/f82f74e4-cf8e-47c5-8ea6-c7897821bf8c'
-
-# - task: VSBuild@1
-#  inputs:
-#    solution: '$(solution)'
-#    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactStagingDirectory)"'
-#    platform: 
-    
-    
-- task: MSBuild@1
-  inputs:
-    solution: '$(solution)'
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
-    msbuildArguments: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactstagingdirectory)\\"'
-
-- task: VSTest@2
-  inputs:
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
-
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-    ArtifactName: 'drop'
-    publishLocation: 'Container'
+          
+          
