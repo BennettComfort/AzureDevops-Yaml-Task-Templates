@@ -1,0 +1,39 @@
+#Your build pipeline references an undefined variable named ‘Parameters.IISDeploymentType’. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
+#Your build pipeline references an undefined variable named ‘Parameters.ActionIISWebsite’. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
+#Your build pipeline references an undefined variable named ‘Parameters.WebsiteName’. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
+#Your build pipeline references an undefined variable named ‘Parameters.AddBinding’. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
+#Your build pipeline references an undefined variable named ‘Parameters.Bindings’. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
+#Your build pipeline references an undefined variable named ‘Parameters.WebsiteName’. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
+#Your build pipeline references an undefined variable named ‘Parameters.VirtualPathForApplication’. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
+#Your build pipeline references an undefined variable named ‘Parameters.WebsiteName’. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
+#Your build pipeline references an undefined variable named ‘Parameters.VirtualPathForApplication’. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
+#Your build pipeline references an undefined variable named ‘Parameters.AppPoolName’. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
+
+steps:
+- task: IISWebAppManagementOnMachineGroup@0
+  displayName: 'IIS Web App Manage'
+  inputs:
+    EnableIIS: true
+    IISDeploymentType: '$(Parameters.IISDeploymentType)'
+    ActionIISWebsite: '$(Parameters.ActionIISWebsite)'
+    WebsiteName: '$(Parameters.WebsiteName)'
+    AddBinding: '$(Parameters.AddBinding)'
+    Bindings: '$(Parameters.Bindings)'
+    CreateOrUpdateAppPoolForWebsite: true
+    AppPoolNameForWebsite: SampleSite
+    ParentWebsiteNameForVD: '$(Parameters.WebsiteName)'
+    VirtualPathForVD: '$(Parameters.VirtualPathForApplication)'
+    ParentWebsiteNameForApplication: '$(Parameters.WebsiteName)'
+    VirtualPathForApplication: '$(Parameters.VirtualPathForApplication)'
+    AppPoolName: '$(Parameters.AppPoolName)'
+
+#Your build pipeline references an undefined variable named ‘Parameters.WebsiteName’. Create or edit the build pipeline for this YAML file, define the variable on the Variables tab. See https://go.microsoft.com/fwlink/?linkid=865972
+
+steps:
+- task: IISWebAppDeploymentOnMachineGroup@0
+  displayName: 'IIS Web App Deploy'
+  inputs:
+    WebSiteName: '$(Parameters.WebsiteName)'
+    VirtualApplication: SampleApp
+    TakeAppOfflineFlag: True
+    XmlVariableSubstitution: True
