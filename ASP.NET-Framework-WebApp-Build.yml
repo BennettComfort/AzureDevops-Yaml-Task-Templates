@@ -22,7 +22,7 @@ trigger:
 stages:
 - stage: Build
   Jobs:
-  - job: 1
+  - job: a1
     pool:
       vmImage: 'windows-latest'
       demands:
@@ -66,7 +66,7 @@ stages:
 
 - stage: Deploy
   jobs: 
-  - deployment: A1
+  - deployment: b1
     displayName: 'ASP.NET Framework Web App Deployment'
     pool:
       vmimage: 'Windows-Latest'
@@ -75,9 +75,11 @@ stages:
       runOnce:
         deploy:
           steps:
-          - download: current
-            artifact: drop
-            
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: 'drop'
+              path: '$(Pipeline.Workspace)'
+
           - task: IISWebAppManagementOnMachineGroup@0
             displayName: 'IIS Web App Manage'
             inputs:
@@ -103,5 +105,18 @@ stages:
               TakeAppOfflineFlag: True
               XmlVariableSubstitution: True
 
+#- task: IISWebAppDeploymentOnMachineGroup@0
+  #inputs:
+    #webSiteName: 
+    #virtualApplication: # Optional
+    #package: $(Pipeline.Workspace)
+    #setParametersFile: # Optional
+    #removeAdditionalFilesFlag: false # Optional
+    #excludeFilesFromAppDataFlag: false # Optional
+    #takeAppOfflineFlag: false # Optional
+    #additionalArguments: # Optional
+    #xmlTransformation: # Optional
+    #xmlVariableSubstitution: # Optional
+    #jSONFiles: # Optional
           
           
