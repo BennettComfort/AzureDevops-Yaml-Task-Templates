@@ -1,0 +1,49 @@
+parameters:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+  websiteName: 'SampleWebApp.com'
+  applicationPoolName: 'SampleWebApp'
+
+steps:
+- download: current
+  artifact: drop
+
+  
+- task: IISWebAppManagementOnMachineGroup@0
+  displayName: Start Web App
+  inputs:
+    IISDeploymentType: 'IISWebsite'
+    ActionIISWebsite: 'StopWebsite'
+    StartStopWebsiteName: '${{ parameters.websiteName }}'
+- task: IISWebAppManagementOnMachineGroup@0
+  displayName: Create/Update Website
+  inputs:
+    IISDeploymentType: 'IISWebsite'
+    ActionIISWebsite: 'CreateOrUpdateWebsite'
+    WebsiteName: '${{ parameters.websiteName }}'
+    WebsitePhysicalPath: 'C:\inetpub\wwwroot\${{ parameters.applicationPoolName }}'
+    WebsitePhysicalPathAuth: 'WebsiteUserPassThrough'
+    AddBinding: true
+    Protocol: http
+    IPAddress: 'All Unassigned'
+    Port: 81
+    CreateOrUpdateAppPoolForWebsite: true
+    AppPoolNameForWebsite: '${{ parameters.applicationPoolName }}'
+    DotNetVersionForWebsite: 'v4.0'
+    PipeLineModeForWebsite: 'Integrated'
+    AppPoolIdentityForWebsite: 'ApplicationPoolIdentity'
+- task: IISWebAppDeploymentOnMachineGroup@0
+  displayName: Deploy Web Application
+  inputs:
+    WebSiteName: '${{ parameters.websiteName }}'
+    VirtualApplication: '${{ parameters.applicationPoolName }}'
+    Package: '$(Pipeline.Workspace)/drop/{{ parameters.applicationPoolName }}.zip'
+    SetParametersFile: '$(Pipeline.Workspace)/drop/{{ parameters.applicationPoolName }}.SetParameters.xml'
+
+- task: IISWebAppManagementOnMachineGroup@0
+  displayName: Start Website
+  inputs:
+    IISDeploymentType: 'IISWebsite'
+    ActionIISWebsite: 'StartWebsite'
+    StartStopWebsiteName: '${{ parameters.websiteName }}'

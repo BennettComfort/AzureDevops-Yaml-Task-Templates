@@ -1,0 +1,48 @@
+parameters:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+  websiteName: 'SampleWebApp.com'
+  applicationPoolName: 'SampleWebApp'
+  vstsFeed: '<FeedName>'
+  
+
+steps:
+- task: NuGetToolInstaller@1
+  displayName: NuGet Install Command
+- task: NuGetCommand@2
+  displayName: NuGet Restore Command
+  inputs:
+    command: 'restore'
+    restoreSolution: '${{ parameters.solution }}'
+    feedsToUse: 'select'
+    vstsFeed: '{{ parameters.vstsFeed }}'
+
+# - task: VSBuild@1
+#  inputs:
+#    solution: '$(solution)'
+#    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactStagingDirectory)"'
+#    platform: 
+  
+
+- task: MSBuild@1
+  displayName: MSBuild
+  inputs:
+    solution: '${{ parameters.solution }}'
+    platform: '${{ parameters.buildPlatform }}'
+    configuration: '${{ parameters.buildConfiguration }}'
+    msbuildArguments: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactstagingdirectory)\\"'
+
+- task: VSTest@2
+  displayName: VSTest
+  inputs:
+    platform: '${{ parameters.buildPlatform }}'
+    configuration: '${{ parameters.buildConfiguration }}'
+
+- task: PublishBuildArtifacts@1
+  displayName: Publish Build Artifact
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
+
