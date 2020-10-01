@@ -1,0 +1,44 @@
+parameters:
+  buildRestoreSource: '**/*.sln'
+  buildConfiguration: 'Release'
+  buildPlatform: 'Any CPU'
+  vstsFeedName: 'No Feed Name Supplied'
+  gitVersionSemVer: ''
+  gitVersionConfigFilePath: ''
+
+steps:
+#Persist creds in case of need to tag (i.e. master branch)
+- checkout: self
+  displayName: 'Checkout "$(Build.SourceBranch)" and persist credentials'
+  persistCredentials: true
+
+- task: GitVersion@5
+  displayName: Use GitVersion to derive Semantic Version and update AssemblyInfo.cs
+  inputs:
+    runtime: 'core'
+    configFilePath: '${{ parameters.gitVersionConfigFilePath }}GitVersion.yml'
+    updateAssemblyInfo: true
+
+- task: PowerShell@2
+  #GitVersion renumbers the build with its SemVer determination.  This step adds build definition name as prefix.
+  displayName: 'Set Build Number = $(Build.DefinitionName)-[GitVersion.SemVer]'
+  inputs:
+    targetType: inline
+    script: |
+      Echo "BuildDefinitionName = $(Build.DefinitionName)"
+      Echo "SemVer (per GitVersion.BuildNumber) = $(Build.BuildNumber)"
+      Write-Host "##vso[build.updatebuildnumber]$(Build.DefinitionName)-$(Build.BuildNumber)"
+
+- task: NuGetCommand@2
+  displayName: 'NuGet restore "${{ parameters.buildRestoreSource }}" from "${{ parameters.vstsFeedName }}"'
+  inputs:
+    restoreSolution: ${{ parameters.buildRestoreSource }}
+    includeNuGetOrg: false
+    vstsFeed: ${{ parameters.vstsFeedName }}
+
+- task: VSBuild@1
+  displayName: 'Build "${{ parameters.buildRestoreSource }}" using ${{ parameters.buildConfiguration }} | ${{ parameters.buildPlatform }}'
+  inputs:
+    solution: ${{ parameters.buildRestoreSource }}
+    platform: '${{ parameters.buildPlatform }}'
+    configuration: ${{ parameters.buildConfiguration }}

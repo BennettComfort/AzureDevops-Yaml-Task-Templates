@@ -1,0 +1,55 @@
+parameters:
+  restoreBuildProjects: '**/*.csproj'
+  testProjects: '**/*[Tt]est*/*.csproj'
+  buildConfiguration: 'Release'
+  restoreFeedName: 'No restore feed supplied'
+
+steps:
+- task: UseDotNet@2
+  displayName: 'Install and use .NET Core 3.1.x sdk'
+  inputs:
+    packageType: sdk
+    version: 3.1.x
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+ 
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet restore "${{ parameters.restoreBuildProjects }}" using "${{ parameters.restoreFeedName }}"'
+  inputs:
+    command: restore
+    noCache: true
+    projects: ${{ parameters.restoreBuildProjects }}
+    includeNuGetOrg: false
+    feedRestore: ${{ parameters.restoreFeedName }}
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet build "${{ parameters.restoreBuildProjects }}"'
+  inputs:
+    command: build
+    projects: ${{ parameters.restoreBuildProjects }}
+    arguments: '--configuration ${{ parameters.buildConfiguration }}'
+  condition: succeeded()
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet test "${{ parameters.testProjects }}"'
+  inputs:
+    command: test
+    projects: ${{ parameters.testProjects }}
+    arguments: '--configuration ${{ parameters.buildConfiguration }}'
+  condition: succeeded()
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet publish ${{ parameters.restoreBuildProjects }} ("${{ parameters.buildConfiguration }}" configuration) to "$(Build.ArtifactStagingDirectory)/$(Build.BuildNumber)"'
+  inputs:
+    command: publish
+    projects: ${{ parameters.restoreBuildProjects }}
+    publishWebProjects: False
+    arguments: '--configuration ${{ parameters.buildConfiguration }} --output $(Build.ArtifactStagingDirectory)/$(Build.BuildNumber)'
+    zipAfterPublish: True
+  condition: succeeded()
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish artifact(s) "$(Build.ArtifactStagingDirectory)/$(Build.BuildNumber)" to Azure Artifacts'
+  inputs:
+    PathtoPublish: $(Build.ArtifactStagingDirectory)/$(Build.BuildNumber)
+    ArtifactName: $(Build.BuildNumber)
+  condition: succeeded()

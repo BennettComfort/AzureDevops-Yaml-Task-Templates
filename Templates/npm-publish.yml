@@ -1,0 +1,20 @@
+parameters:
+  packageFolder:
+  semanticVersionNum:
+  publishFeed:
+
+steps:
+- task: Npm@1
+  displayName: 'npm version ${{ parameters.packageFolder }} with ${{ parameters.semanticVersionNum }}'  
+  inputs:
+    command: 'custom'
+    packageFolder: '${{ parameters.packageFolder }}'
+    customCommand: 'version ${{ parameters.Version }}'
+
+- task: Npm@1
+  inputs:
+    displayName: 'npm publish ${{ parameters.packageFolder }} to the ${{ parameters.publishFeed }}'  
+    command: 'publish'
+    packageFolder: '${{ parameters.packageFolder }}'
+    publishRegistry: 'useFeed'
+    publishFeed: '${{ parameters.publishFeed }}'

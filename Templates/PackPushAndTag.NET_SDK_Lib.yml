@@ -1,0 +1,35 @@
+parameters:
+  vstsFeedName: 'No Feed Name Supplied'
+  packConfiguration: 'Release'
+  tag: ''
+
+steps:
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet pack $(ArtifactStagingDirectory)'
+  inputs:
+    command: pack
+    packDirectory: $(ArtifactStagingDirectory)
+    configurationToPack: ${{ parameters.packConfiguration }}
+    nobuild: true
+    versioningScheme: byBuildNumber
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet Push $(ArtifactStagingDirectory) to ${{ parameters.vstsFeedName }}'
+  inputs:
+    command: 'push'
+    searchPatternPush: '$(ArtifactStagingDirectory)/**/*.nupkg'
+    publishVstsFeed: ${{ parameters.vstsFeedName }}
+
+- task: PowerShell@2
+  displayName: 'tag master branch with GitVersion.SemVer (i.e. "v[GitVersion.SemVer]")'
+  inputs:
+    targetType: 'inline'
+    script: |
+      $env:GIT_REDIRECT_STDERR = '2>&1'
+      echo 'master branch tag = ${{ parameters.tag }}'
+      git tag ${{ parameters.tag }}
+      Write-Host "Successfully created tag ${{ parameters.tag }}" 
+      git push --tags --force
+      Write-Host "Successfully pushed tag ${{ parameters.tag }}"     
+      git status
+      Write-Host "git status"
