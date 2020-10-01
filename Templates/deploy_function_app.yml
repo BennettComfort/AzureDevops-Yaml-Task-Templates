@@ -1,0 +1,13 @@
+parameters:
+  azureServiceConnection: 'Azure Service Connection not specified'
+  functionAppName: 'Function App Name not specified'
+  deployPackage: 'Deployment Package not supplied'
+
+steps:
+- task: AzureFunctionApp@1
+  displayName: 'Deploy "${{ parameters.deployPackage }}" to "${{ parameters.functionAppName }}" via "${{ parameters.azureServiceConnection }}"'
+  inputs:
+    azureSubscription: ${{ parameters.azureServiceConnection }}
+    appType: functionApp
+    appName: ${{ parameters.functionAppName }}
+    package: ${{ parameters.deployPackage }}

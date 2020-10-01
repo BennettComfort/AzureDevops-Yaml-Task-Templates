@@ -1,0 +1,60 @@
+parameters:
+  restoreBuildProjects: '**/*.csproj'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+  buildName:
+  artifactStagingDir:
+  feedName: 
+
+steps:
+- task: UseDotNet@2
+  displayName: 'Use .NET Core 3.1.x sdk'
+  inputs:
+    packageType: sdk
+    version: 3.1.x
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+ 
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet restore ${{ parameters.restoreBuildProjects }}'
+  inputs:
+    command: restore
+    noCache: true
+    projects: ${{ parameters.restoreBuildProjects }}
+    includeNuGetOrg: false
+    vstsFeed: ${{ parameters.feedName }}
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet build ${{ parameters.restoreBuildProjects }}'
+  inputs:
+    command: build
+    projects: ${{ parameters.restoreBuildProjects }}
+    arguments: '--configuration ${{ parameters.buildConfiguration }}'
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet publish --configuration ${{ parameters.buildConfiguration }} --output ${{ parameters.artifactStagingDir }}'
+  inputs:
+    command: publish
+    publishWebProjects: False
+    arguments: '--configuration ${{ parameters.buildConfiguration }} --output ${{ parameters.artifactStagingDir }}'
+ 
+#Only pack and push if manual build
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet pack ${{ parameters.artifactStagingDir }}'
+  inputs:
+    command: pack
+    packDirectory: ${{ parameters.artifactStagingDir }}
+    configurationToPack: ${{ parameters.buildConfiguration }}
+    nobuild: true
+    versioningScheme: byBuildNumber
+  condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet Push ${{ parameters.artifactStagingDir }}'
+  inputs:
+    command: 'custom'
+    custom: 'dotnet push ${{ parameters.artifactStagingDir }} --skip-duplicates'
+    searchPatternPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg'
+    publishVstsFeed: ${{ parameters.feedName }}
+  condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
+
+  

@@ -1,0 +1,58 @@
+parameters:
+  buildRestoreSource: '**/*.csproj'
+  buildConfiguration: 'Release'
+  vstsFeedName: 'No Feed Name Supplied'
+  gitVersionSemVer: ''
+
+steps:
+#Persist creds in case of need to tag (i.e. master branch)
+- checkout: self
+  displayName: 'Checkout "$(Build.SourceBranch)" and persist credentials'
+  persistCredentials: true
+
+- task: GitVersion@5
+  displayName: Use GitVersion to derive Semantic Version and update AssemblyInfo.cs
+  inputs:
+    runtime: 'core'
+    configFilePath: 'GitVersion.yml'
+    updateAssemblyInfo: true
+
+- task: UseDotNet@2
+  displayName: 'Use .NET Core 3.1.x sdk'
+  inputs:
+    packageType: sdk
+    version: 3.1.x
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+ 
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet restore ${{ parameters.buildRestoreSource }}'
+  inputs:
+    command: restore
+    noCache: true
+    projects: ${{ parameters.buildRestoreSource }}
+    includeNuGetOrg: false
+    vstsFeed: ${{ parameters.vstsFeedName }}
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet build ${{ parameters.buildRestoreSource }}'
+  inputs:
+    command: build
+    projects: ${{ parameters.buildRestoreSource }}
+    arguments: '--configuration ${{ parameters.buildConfiguration }}'
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet publish --configuration ${{ parameters.buildConfiguration }} --output $(ArtifactStagingDir)'
+  inputs:
+    command: publish
+    publishWebProjects: False
+    arguments: '--configuration ${{ parameters.buildConfiguration }} --output $(ArtifactStagingDir)'
+
+- task: PowerShell@2
+  #GitVersion renumbers the build with its SemVer determination
+  displayName: 'Set Build Number = $(Build.DefinitionName)-[GitVersion.SemVer]'
+  inputs:
+    targetType: inline
+    script: |
+      Echo "BuildDefinitionName = $(Build.DefinitionName)"
+      Echo "SemVer (per GitVersion.BuildNumber) = $(Build.BuildNumber)"
+      Write-Host "##vso[build.updatebuildnumber]$(Build.DefinitionName)-$(Build.BuildNumber)"

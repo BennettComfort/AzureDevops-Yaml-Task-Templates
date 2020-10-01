@@ -1,0 +1,53 @@
+parameters:
+  azureServiceConnection: 'Azure Service Connection not specified'
+  azureDBResourceGroup: 'Azure DB Rsource Group not specified'
+  azureDBServer: 'Azure DB Server not specified'
+  azureDBName: 'Azure DB Name not specified'
+  dacpacFile: '$(Pipeline.Workspace)\a\$(Build.BuildNumber)\*.dacpac'
+  sqlUsername: 'SQL UserName not provided'
+  sqlPassword: 'SQL Password not provided'
+  dacpacArgs: ''
+
+steps:
+- task: AzurePowerShell@4
+  displayName: 'Ensure [${{ parameters.azureDBServer }}::${{ parameters.azureDBName }}] is Online'
+  inputs:
+    azureSubscription: ${{ parameters.azureServiceConnection }}
+    scriptType: 'inlineScript'
+    inline: |
+      $DBStatus = Get-AzSqlDatabase -ResourceGroupName ${{ parameters.azureDBResourceGroup }} -ServerName ${{ parameters.azureDBServer }} -DatabaseName ${{ parameters.azureDBName }}  |  Select -ExpandProperty "Status"
+      Write-Host ('[${{ parameters.azureDBServer }}::${{ parameters.azureDBName }}].Status = "{0}"' -f $DBStatus)
+      If ($DBStatus -eq 'Paused') {
+        Write-Host "Resuming database [${{ parameters.azureDBServer }}::${{ parameters.azureDBName }}]..."
+        #Try to connect (but don't actually)
+        Try {
+          $connectionString = 'Data Source=${{ parameters.azureDBServer }}.database.windows.net;database=${{ parameters.azureDBName }};User ID=${{ parameters.sqlUsername }};Password=${{ parameters.sqlPassword }}'
+          $sqlConnection = New-Object System.Data.SqlClient.SqlConnection $ConnectionString
+          Write-Host "Opening Sql Connection: $connectionString"
+          $sqlConnection.Open()
+        }
+        Catch {
+          "Connection error caught (as expected)"
+          Write-Host "Waiting for Database [${{ parameters.azureDBServer }}::${{ parameters.azureDBName }}] to come online..."
+          While ($DBStatus -ne 'Online') {
+            $DBStatus = Get-AzSqlDatabase -ResourceGroupName ${{ parameters.azureDBResourceGroup }} -ServerName ${{ parameters.azureDBServer }} -DatabaseName ${{ parameters.azureDBName }}  |  Select -ExpandProperty "Status"
+            Write-Host ('[${{ parameters.azureDBServer }}::${{ parameters.azureDBName }}].Status = "{0}"' -f $DBStatus)
+            Start-Sleep -s 2
+          } 
+        }
+        Finally {
+          $sqlConnection.Close()
+        }
+      }
+    azurePowerShellVersion: latestVersion
+
+- task: SqlAzureDacpacDeployment@1
+  displayName: 'Update [${{ parameters.azureDBServer }}::${{ parameters.azureDBName }}] using  ${{ parameters.dacpacFile }}'
+  inputs:
+    azureSubscription: ${{ parameters.azureServiceConnection }}
+    serverName: ${{ parameters.azureDBServer }}.database.windows.net
+    databaseName: ${{ parameters.azureDBName }}
+    dacpacFile: ${{ parameters.dacpacFile }}
+    sqlUsername: ${{ parameters.sqlUsername }}
+    sqlPassword: ${{ parameters.sqlPassword }}
+    additionalArguments: ${{ parameters.dacpacArgs }}

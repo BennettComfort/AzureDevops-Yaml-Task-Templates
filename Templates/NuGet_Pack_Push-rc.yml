@@ -1,0 +1,26 @@
+parameters:
+  buildName: 'No Build specified'
+  versionSpec: 0.0.0
+  versionSpec_rc: '0.0.0-rc'
+  feedName: 'No Feed specified'
+
+steps:
+- task: NuGetToolInstaller@0
+  displayName: 'Use NuGet 4.4.1'
+  inputs:
+    versionSpec: 4.4.1
+
+- task: NuGetCommand@2
+  displayName: 'NuGet Pack \packages\**\*.nuspec with ${{ parameters.versionSpec }}'
+  inputs:
+    command: pack
+    packagesToPack: '**/*.nuspec'
+    packDestination: $(Build.ArtifactStagingDir)
+    versioningScheme: byBuildNumber
+
+- task: NuGetCommand@2
+  displayName: 'NuGet push ${{ parameters.buildName }}  ${{ parameters.versionSpec }} to ${{ parameters.feedName }}'
+  inputs:
+    command: push
+    packagesToPush: '$(Build.ArtifactStagingDir)/**/*.nupkg'
+    publishVstsFeed: ${{ parameters.feedName }}

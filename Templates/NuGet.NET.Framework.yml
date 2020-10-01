@@ -1,0 +1,45 @@
+parameters:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+  buildName:
+  artifactStagingDir:
+  feedName: 
+
+steps:
+- task: NuGetToolInstaller@0
+  displayName: 'Use NuGet 4.4.1'
+  inputs:
+    versionSpec: 4.4.1
+
+- task: NuGetCommand@2
+  displayName: 'NuGet restore (${{ parameters.solution }}) from ${{ parameters.feedName }}'
+  inputs:
+    restoreSolution: ${{ parameters.solution }}
+    includeNuGetOrg: false
+    vstsFeed: ${{ parameters.feedName }}
+
+- task: VSBuild@1
+  displayName: 'Build solution - (${{ parameters.buildPlatform }} - ${{ parameters.buildConfiguration }})'
+  inputs:
+    solution: '${{ parameters.solution }}'
+    platform: '${{ parameters.buildPlatform }}'
+    configuration: '${{ parameters.buildConfiguration }}'
+
+#Only pack and push if manual build
+- task: NuGetCommand@2
+  displayName: 'NuGet Pack ${{ parameters.artifactStagingDir }}\packages\**\*.nuspec'
+  inputs:
+    command: pack
+    packagesToPack: '**/*.nuspec'
+    packDestination: ${{ parameters.artifactStagingDir }}
+    versioningScheme: byBuildNumber
+  condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
+
+- task: NuGetCommand@2
+  displayName: 'NuGet push ${{ parameters.buildName }} to ${{ parameters.feedName }}'
+  inputs:
+    command: push
+    packagesToPush: '${{ parameters.artifactStagingDir }}/**/*.nupkg'
+    publishVstsFeed: ${{ parameters.feedName }}
+  condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))

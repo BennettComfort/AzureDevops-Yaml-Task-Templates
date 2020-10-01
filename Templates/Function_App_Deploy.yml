@@ -1,0 +1,13 @@
+parameters:
+  functionAppName: 'Function app name not specified'
+  azureServiceConnection: 'Azure Service Connection not specified'
+  whatToDeploy: '$(ArtifactStagingDirectory)/**/*.zip'
+
+steps:
+- task: AzureFunctionApp@1
+  displayName: 'Deploy "${{ parameters.whatToDeploy }}" to "${{ parameters.azureServiceConnection }}::${{ parameters.functionAppName }}"'
+  inputs:
+    azureSubscription: ${{ parameters.azureServiceConnection }}
+    appType: functionApp
+    appName: ${{ parameters.functionAppName }}
+    package: ${{ parameters.whatToDeploy }}

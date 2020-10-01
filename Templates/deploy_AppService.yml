@@ -1,0 +1,13 @@
+parameters:
+  appServiceAppName: 'App Service App Name not specified'
+  azureServiceConnection: 'Azure Service Connection not specified'
+  whatToDeploy: '$(Pipeline.Workspace)\a\$(Build.BuildNumber)\$(Build.DefinitionName).zip'
+
+steps:
+- task: AzureWebApp@1
+  displayName: 'Deploy "${{ parameters.whatToDeploy }}" to "${{ parameters.azureServiceConnection }}::${{ parameters.appServiceAppName }}"'
+  inputs:
+    azureSubscription: ${{ parameters.azureServiceConnection }}
+    appType: webAppLinux
+    appName: ${{ parameters.appServiceAppName }}
+    package: ${{ parameters.whatToDeploy }}

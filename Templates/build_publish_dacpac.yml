@@ -1,0 +1,25 @@
+parameters:
+  DBProjects: '**/*.sqlproj'
+  buildConfiguration: Release
+  buildPlatform: 'Any CPU'
+
+steps:
+- task: VSBuild@1
+  displayName: 'Build ${{ parameters.DBProjects }}'
+  inputs:
+    solution: ${{ parameters.DBProjects }}
+    configuration: ${{ parameters.buildConfiguration }}
+    platform: ${{ parameters.buildPlatform }}
+
+- task: CopyFiles@2
+  displayName: 'Copy dacpac file(s) to staging directory'
+  inputs:
+    contents: '**\*.dacpac'
+    targetFolder: '$(Build.ArtifactStagingDirectory)/$(Build.BuildNumber)'
+    flattenFolders: true
+
+- task: PublishBuildArtifacts@1
+  displayName: Publish dacpac file(s) to Azure Artifacts
+  inputs:
+    pathToPublish: $(Build.ArtifactStagingDirectory)/$(Build.BuildNumber)
+    artifactName: $(Build.BuildNumber)

@@ -1,0 +1,29 @@
+parameters:
+  sqlProjects: '**\*.sqlproj'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+  buildName:
+  artifactStagingDir:
+
+steps:
+- task: VSBuild@1
+  displayName: 'Build sql project(s) ${{ parameters.sqlProjects }}'
+  inputs:
+    solution: ${{ parameters.sqlProjects }}
+    platform: '${{ parameters.buildPlatform }}'
+    configuration: '${{ parameters.buildConfiguration }}'
+
+- task: CopyFiles@2
+  displayName: 'Copy .dacpac file to ${{ parameters.ArtifactStagingDir }}'
+  inputs:
+    Contents: '**/*.dacpac'
+    TargetFolder: ${{ parameters.ArtifactStagingDir }}
+    flattenFolders: true
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish ${{ parameters.buildName }}.dacpac file to AZ Artifacts'
+  inputs:
+    pathToPublish: ${{ parameters.ArtifactStagingDir }}
+    artifactName: '${{ parameters.buildName }}.dacpac'
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))

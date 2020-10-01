@@ -1,0 +1,21 @@
+parameters:
+  versionSpec: 0.0.0
+
+  steps:
+  - checkout: self
+    displayName: 'Checkout '
+    persistCredentials: true
+    clean: true
+    fetchDepth: 1
+
+  - task: PowerShell@2
+    displayName: 'Tag branch with Version $(versionSpec) '
+    inputs:
+      targetType: 'inline'
+      script: |
+        $env:GIT_REDIRECT_STDERR` = '2>&1'
+        git tag 'v$(versionSpec)'
+        Write-Host "Successfully created tag $tag" 
+        git push --tags
+         Write-Host "Successfully pushed tag $tag"     
+      failOnStderr: false
